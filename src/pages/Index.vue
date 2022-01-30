@@ -1,65 +1,77 @@
 <template>
   <q-page class="flex flex-center">
     <div class="main">
-      <q-btn  @click="$pub()" color="green">start</q-btn>
-      <q-btn  @click="$pub()" color="red">stop</q-btn>
-      <q-input @keydown="$pub()" outlined v-model="bör" label="bör hastighet" />
-      <q-input @keydown="$pub()" outlined v-model="kp" label="kp" />
+      <Chart />
+      <div class="flex flex-center">
+        <q-btn @click="$pub()" color="green">start</q-btn>
+        <q-btn @click="$pub()" color="red">stop</q-btn>
+        <q-input
+          @keydown.enter="
+            $pub('/NH/tSpeed', tSpeed);
+            this.$store.dispatch('tSpeedUpdate', tSpeed);
+          "
+          outlined
+          v-model="tSpeed"
+          placeholder="0"
+          label="Target value"
+        />
+        <q-input
+          @keydown.enter="$pub('/NH/kP', kP)"
+          outlined
+          v-model="kP"
+          label="kP"
+        />
+        <q-input
+          @keydown.enter="$pub('/NH/kI', kI)"
+          outlined
+          v-model="kI"
+          label="kI"
+        />
+        <q-input
+          @keydown.enter="$pub('/NH/kD', kD)"
+          outlined
+          v-model="kD"
+          label="kD"
+        />
+        <q-input
+          @keydown.enter="$pub('/NH/aSpeed', aSpeed)"
+          outlined
+          v-model="aSpeed"
+          label="aSpeed"
+        />
+      </div>
     </div>
-    <div class="main">
-      <q-btn  @click="newData()" color="red">stop</q-btn>
-    </div>
-    <Chart />
-    {{series}}
   </q-page>
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue';
-import Chart from 'components/Chart.vue'
+import { defineComponent, ref } from "vue";
+import Chart from "components/Chart.vue";
 
 export default defineComponent({
-  name: 'PageIndex',
+  name: "PageIndex",
   components: {
     Chart
   },
-  setup () {
+  setup() {
     return {
-      bör: ref(''),
-      kp: ref(''),
-      series: ref([{
-        name: 'series-1',
-        // data: [...Array(25).keys()]
-        data: new Array(25).fill(0)
-      }])
-    }
+      tSpeed: ref(""),
+      kP: ref(""),
+      kI: ref(""),
+      kD: ref(""),
+      aSpeed: ref("")
+    };
   },
-  methods: {
-    newData() {
-      // this.series.data = [...this.series.data.slice(1), 4]
-      const max = 90;
-      const min = 20;
-      // let newData = this.series[0].data.map(() => {
-      //   return Math.floor(Math.random() * (max - min + 1)) + min
-      // })
-
-      let newData = [...this.series[0].data.slice(1), Math.floor(Math.random() * (max - min + 1)) + min]
-
-      console.log(newData)
-      this.series = [{
-        data: newData
-      }]
-    }
-  }
-})
+  methods: {}
+});
 </script>
 
 <style lang="scss" scoped>
 .main {
-  display: flex
+  display: flex;
+  flex-direction: column;
 }
 .main * {
   margin: 10px;
 }
-
 </style>
