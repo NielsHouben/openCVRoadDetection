@@ -1,43 +1,70 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import * as tf from '@tensorflow/tfjs';
-import {loadGraphModel} from '@tensorflow/tfjs-converter';
+import { loadGraphModel } from '@tensorflow/tfjs-converter';
 import "./styles.css";
 tf.setBackend('webgl');
 
 const threshold = 0.75;
 
-async function load_model() {
-    // It's possible to load the model locally or from a repo
-    // You can choose whatever IP and PORT you want in the "http://127.0.0.1:8080/model.json" just set it before in your https server
-    //const model = await loadGraphModel("http://127.0.0.1:8080/model.json");
-    const model = await loadGraphModel("https://raw.githubusercontent.com/hugozanini/TFJS-object-detection/master/models/kangaroo-detector/model.json");
-    return model;
-  }
+async function load_model () {
+  // It's possible to load the model locally or from a repo
+  // You can choose whatever IP and PORT you want in the "http://127.0.0.1:8080/model.json" just set it before in your https server
+  //const model = await loadGraphModel("http://127.0.0.1:8080/model.json");
+  const model = await loadGraphModel("https://raw.githubusercontent.com/hugozanini/TFJS-object-detection/master/models/kangaroo-detector/model.json");
+  return model;
+}
 
 let classesDir = {
-    1: {
-        name: 'Kangaroo',
-        id: 1,
-    },
-    2: {
-        name: 'Other',
-        id: 2,
-    }
-}
+  1: {
+    name: 'Kangaroo',
+    id: 1,
+  },
+  2: {
+    name: 'Other',
+    id: 2,
+  }
+};
 
 class App extends React.Component {
   videoRef = React.createRef();
   canvasRef = React.createRef();
 
+  constructor() {
+    super();
+    // alert("hej");
+  }
 
-  componentDidMount() {
+
+  componentDidMount () {
+    // const ctx = this.canvasRef.current.getContext("2d");
+    // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // Set line width
+    // ctx.lineWidth = 10;
+
+    // let offset = 135;
+
+    // ctx.strokeStyle = 'rgb(255, 0, 0)';
+    // ctx.lineWidth = 2;
+    // ctx.strokeRect(1, 1, 375 - 2, offset - 3);
+
+    // ctx.lineJoin = "bevel";
+    // ctx.strokeStyle = 'rgb(0, 200, 0)';
+
+    // let width = 375;
+    // let height = 533;
+    // ctx.strokeRect(1, offset, width - 2, height - 2);
+    // ctx.strokeRect(225 - 1, 517 - 1, 150, 150);
+
+    // ctx.stroke();
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       const webCamPromise = navigator.mediaDevices
         .getUserMedia({
           audio: false,
           video: {
-            facingMode: "user"
+            // facingMode: "user"
+            facingMode: "environment",
+            // width: 1280, height: 1920
           }
         })
         .then(stream => {
@@ -54,33 +81,38 @@ class App extends React.Component {
 
       Promise.all([modelPromise, webCamPromise])
         .then(values => {
-          this.detectFrame(this.videoRef.current, values[0]);
+          // this.detectFrame(this.videoRef.current, values[0]);
+          this.processVideo(this.videoRef.current);
         })
         .catch(error => {
           console.error(error);
         });
     }
   }
+  processVideo = (video) => {
 
-    detectFrame = (video, model) => {
-        tf.engine().startScope();
-        model.executeAsync(this.process_input(video)).then(predictions => {
-        this.renderPredictions(predictions, video);
-        requestAnimationFrame(() => {
-          this.detectFrame(video, model);
-        });
-        tf.engine().endScope();
-      });
+
   };
 
-  process_input(video_frame){
+  detectFrame = (video, model) => {
+    tf.engine().startScope();
+    model.executeAsync(this.process_input(video)).then(predictions => {
+      this.renderPredictions(predictions, video);
+      requestAnimationFrame(() => {
+        this.detectFrame(video, model);
+      });
+      tf.engine().endScope();
+    });
+  };
+
+  process_input (video_frame) {
     const tfimg = tf.browser.fromPixels(video_frame).toInt();
-    const expandedimg = tfimg.transpose([0,1,2]).expandDims();
+    const expandedimg = tfimg.transpose([0, 1, 2]).expandDims();
     return expandedimg;
   };
 
-  buildDetectedObjects(scores, threshold, boxes, classes, classesDir) {
-    const detectionObjects = []
+  buildDetectedObjects (scores, threshold, boxes, classes, classesDir) {
+    const detectionObjects = [];
     var video_frame = document.getElementById('frame');
 
     scores[0].forEach((score, i) => {
@@ -99,10 +131,10 @@ class App extends React.Component {
           label: classesDir[classes[i]].name,
           score: score.toFixed(4),
           bbox: bbox
-        })
+        });
       }
-    })
-    return detectionObjects
+    });
+    return detectionObjects;
   }
 
   renderPredictions = predictions => {
@@ -119,7 +151,7 @@ class App extends React.Component {
     const scores = predictions[5].arraySync();
     const classes = predictions[6].dataSync();
     const detections = this.buildDetectedObjects(scores, threshold,
-                                    boxes, classes, classesDir);
+      boxes, classes, classesDir);
 
     detections.forEach(item => {
       const x = item['bbox'][0];
@@ -145,31 +177,30 @@ class App extends React.Component {
 
       // Draw the text last to ensure it's on top.
       ctx.fillStyle = "#000000";
-      ctx.fillText(item["label"] + " " + (100*item["score"]).toFixed(2) + "%", x, y);
+      ctx.fillText(item["label"] + " " + (100 * item["score"]).toFixed(2) + "%", x, y);
     });
   };
 
-  render() {
+
+  render () {
     return (
       <div>
-        <h1>Real-Time Object Detection: Kangaroo</h1>
-        <h3>MobileNetV2</h3>
         <video
-          style={{height: '600px', width: "500px"}}
-          className="size"
+          // style={{ height: '667px', width: "375" }}
+          className="size video"
           autoPlay
           playsInline
           muted
           ref={this.videoRef}
-          width="600"
-          height="500"
+          width="375"
+          height="667"
           id="frame"
         />
         <canvas
-          className="size"
+          className="size canvas"
           ref={this.canvasRef}
-          width="600"
-          height="500"
+          width="375"
+          height="667"
         />
       </div>
     );
