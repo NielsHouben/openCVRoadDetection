@@ -4,28 +4,105 @@
 <head>
     <title>opencv.js sandbox</title>
     <meta charset="UTF-8" />
+    <script src="src/blobDetection.js"></script>
+    <link href="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.min.css" rel="stylesheet">
+    <script src="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.js"></script>
 </head>
 
 <body>
     <div>
-        <video id="videoInput"></video> <canvas id="canvasOutput"></canvas>
+        <video id="videoInput" playsinline></video> <canvas id="canvasOutput"></canvas>
         <button id="startCameraButton" onclick="startCamera()" disabled>startCamera </button>
+
+        <div id="r"></div>
+        <span id="rShow"></span>
+        <div id="g"></div>
+        <span id="gShow"></span>
+        <div id="b"></div>
+        <span id="bShow"></span>
+
+
     </div>
     <script>
+        // let sliderFromR = document.getElementById("fromR");
+        // let sliderFromG = document.getElementById("fromG");
+        // let sliderFromB = document.getElementById("fromB");
 
-        // const FPS = 0.1;
-        // function notify () {
-        //     alert("notifying you");
-        //     // let begin = Date.now();
-        //     setTimeout(notify, 6000);
+        // let sliderToR = document.getElementById("toR");
+        // let sliderToG = document.getElementById("toG");
+        // let sliderToB = document.getElementById("toB");
 
-        // }
+        var r = document.getElementById('r');
+        var g = document.getElementById('g');
+        var b = document.getElementById('b');
 
-        // // schedule the first one.
-        // // console.log("dsl");
-        // setTimeout(notify, 0);
+        var rShow = document.getElementById('rShow');
+        var gShow = document.getElementById('gShow');
+        var bShow = document.getElementById('bShow');
+        let threshold = { min: { r: 97, g: 160, b: 75 }, max: { r: 255, g: 255, b: 255 } };
 
-        // alert("hubuebulabub");
+
+        let options = {
+            start: [0, 255],
+            connect: true,
+            range: { 'min': 0, 'max': 255 },
+            margin: 1,
+            step: 1,
+        };
+
+        noUiSlider.create(r, { ...options, start: [threshold.min.r, threshold.max.r] });
+        r.noUiSlider.on('update', function (values, handle) {
+            threshold.min.r = parseInt(values[0]);
+            threshold.max.r = parseInt(values[1]);
+            rShow.innerText = `${values[0]}-${values[1]}`;
+        });
+
+        noUiSlider.create(g, { ...options, start: [threshold.min.g, threshold.max.g] });
+        g.noUiSlider.on('update', function (values, handle) {
+            threshold.min.g = parseInt(values[0]);
+            threshold.max.g = parseInt(values[1]);
+            gShow.innerText = `${values[0]}-${values[1]}`;
+        });
+
+        noUiSlider.create(b, { ...options, start: [threshold.min.b, threshold.max.b] });
+        b.noUiSlider.on('update', function (values, handle) {
+            threshold.min.b = parseInt(values[0]);
+            threshold.max.b = parseInt(values[1]);
+            bShow.innerText = `${values[0]}-${values[1]}`;
+        });
+
+
+
+        const params = {
+            thresholdStep: 10,
+            minThreshold: 50,
+            maxThreshold: 220,
+            minRepeatability: 0,
+            minDistBetweenBlobs: 10,
+
+            filterByColor: false,
+            blobColor: 255,
+
+            filterByArea: true,
+            minArea: 200,
+            maxArea: 5000,
+
+            filterByCircularity: true,
+            minCircularity: 100,
+            maxCircularity: 1000000,
+
+            filterByInertia: false,
+            //minInertiaRatio: 0.6,
+            minInertiaRatio: 0.1,
+            maxInertiaRatio: 1000000,
+
+            filterByConvexity: false,
+            //minConvexity: 0.8,
+            minConvexity: 0.95,
+            maxConvexity: 1000000,
+
+            faster: true,
+        };
         // Adapted from https://docs.opencv.org/3.4/dd/d00/tutorial_js_video_display.html
         let video = document.getElementById("videoInput"); // video is the id of video tag
         video.width = 640;
@@ -39,25 +116,39 @@
 
         async function startCamera () {
             const stream = await navigator.mediaDevices
-                .getUserMedia({ video: true, audio: false })
+                .getUserMedia({
+                    video: {
+                        facingMode: { ideal: "environment" }
+                    }, audio: false
+                })
                 .catch(function (err) {
                     console.log("An error occurred! " + err);
                 });
 
-            alert(video.srcObject);
+            // alert(video.srcObject);
 
             video.srcObject = stream;
             video.play();
-            alert(video.srcObject);
+            // alert(video.srcObject);
 
             let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
             let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
             let cap = new cv.VideoCapture(video);
 
+            let lower = [0, 50, 0, 0];
+            let higher = [100, 255, 100, 255];
+
+            //kinda works for edge detection
+            // let lower = [0, 50, 0, 0];
+            // let higher = [100, 255, 100, 255];
+
+            // let src = cv.imread('canvasInput');
+            // let dst = new cv.Mat();
             // const FPS = 30;
             const FPS = 30;
             function processVideo () {
                 try {
+                    let begin = Date.now();
                     // alert("doing thing");
                     // if (!streaming) {
                     //   // clean and stop.
@@ -65,11 +156,32 @@
                     //   dst.delete();
                     //   return;
                     // }
-                    let begin = Date.now();
+
+                    //faster if only defined once outside, but then cant change threshold
+                    let low = new cv.Mat(src.rows, src.cols, src.type(), [threshold.min.r, threshold.min.g, threshold.min.b, 0]);
+                    let high = new cv.Mat(src.rows, src.cols, src.type(), [threshold.max.r, threshold.max.g, threshold.max.b, 255]);
                     // start processing.
                     cap.read(src);
-                    cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+                    // cv.cvtColor(src, dst, cv.COLOR_RGBA2RGB);
+
+                    cv.inRange(src, low, high, dst);
+                    let ksize = new cv.Size(9, 9);
+                    // You can try more different parameters
+                    cv.GaussianBlur(dst, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
+
+                    // let keypoints = simpleBlobDetector(src, params);
+                    // for (const keypoint of keypoints) {
+
+                    //     const center = new cv.Point(keypoint.pt.x, keypoint.pt.y);
+                    //     // console.log(center);
+                    //     cv.circle(dst, center, keypoint.size, [255, 0, 0, 255], 3);
+                    // }
+                    // cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
                     cv.imshow("canvasOutput", dst);
+
+                    low.delete(); high.delete();
+
+
                     // schedule the next one.
                     let delay = 1000 / FPS - (Date.now() - begin);
                     setTimeout(processVideo, delay);
@@ -87,5 +199,19 @@
     <!-- <script src="src/index.js?version=1"></script> -->
     <script async src="opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
 </body>
+
+<style>
+    #r,
+    #g,
+    #b {
+        width: 80vw;
+        margin: 1em;
+    }
+
+    .noUi-horizontal,
+    .noUi-vertical .noUi-handle .noUi-connect {
+        background: red;
+    }
+</style>
 
 </html>
