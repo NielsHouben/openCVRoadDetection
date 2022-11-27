@@ -13,6 +13,8 @@
 npx will automatically install any not-yet-install packages
 
 
+### only http-server
+    npx http-server -S -C .cert/cert.pem -K .cert/key.pem
 
 
 good resource

@@ -1,3 +1,4 @@
+alert("hubuebulabub");
 // Adapted from https://docs.opencv.org/3.4/dd/d00/tutorial_js_video_display.html
 let video = document.getElementById("videoInput"); // video is the id of video tag
 video.width = 640;
@@ -22,9 +23,11 @@ function startCamera () {
             let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
             let cap = new cv.VideoCapture(video);
 
-            const FPS = 30;
+            // const FPS = 30;
+            const FPS = 0.5;
             function processVideo () {
                 try {
+                    alert("doing thing");
                     // if (!streaming) {
                     //   // clean and stop.
                     //   src.delete();
