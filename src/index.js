@@ -1,211 +1,56 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import * as tf from '@tensorflow/tfjs';
-import { loadGraphModel } from '@tensorflow/tfjs-converter';
-import "./styles.css";
-tf.setBackend('webgl');
+alert("hubuebulabub");
+// Adapted from https://docs.opencv.org/3.4/dd/d00/tutorial_js_video_display.html
+let video = document.getElementById("videoInput"); // video is the id of video tag
+video.width = 640;
+video.height = 480;
 
-const threshold = 0.75;
-
-async function load_model () {
-  // It's possible to load the model locally or from a repo
-  // You can choose whatever IP and PORT you want in the "http://127.0.0.1:8080/model.json" just set it before in your https server
-  //const model = await loadGraphModel("http://127.0.0.1:8080/model.json");
-  const model = await loadGraphModel("https://raw.githubusercontent.com/hugozanini/TFJS-object-detection/master/models/kangaroo-detector/model.json");
-  return model;
+// make button available here
+function onOpenCvReady () {
+    // alert("opencv is ready");
+    document.getElementById("startCameraButton").disabled = false;
 }
 
-let classesDir = {
-  1: {
-    name: 'Kangaroo',
-    id: 1,
-  },
-  2: {
-    name: 'Other',
-    id: 2,
-  }
-};
+// fix this shit with async await
+// make stuff toplevel
+function startCamera () {
+    navigator.mediaDevices
+        .getUserMedia({ video: true, audio: false })
+        .then(function (stream) {
+            video.srcObject = stream;
+            video.play();
 
-class App extends React.Component {
-  videoRef = React.createRef();
-  canvasRef = React.createRef();
+            let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+            let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+            let cap = new cv.VideoCapture(video);
 
-  constructor() {
-    super();
-    // alert("hej");
-  }
+            // const FPS = 30;
+            const FPS = 0.5;
+            function processVideo () {
+                try {
+                    alert("doing thing");
+                    // if (!streaming) {
+                    //   // clean and stop.
+                    //   src.delete();
+                    //   dst.delete();
+                    //   return;
+                    // }
+                    let begin = Date.now();
+                    // start processing.
+                    cap.read(src);
+                    cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+                    cv.imshow("canvasOutput", dst);
+                    // schedule the next one.
+                    let delay = 1000 / FPS - (Date.now() - begin);
+                    setTimeout(processVideo, delay);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
 
-
-  componentDidMount () {
-    // const ctx = this.canvasRef.current.getContext("2d");
-    // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    // Set line width
-    // ctx.lineWidth = 10;
-
-    // let offset = 135;
-
-    // ctx.strokeStyle = 'rgb(255, 0, 0)';
-    // ctx.lineWidth = 2;
-    // ctx.strokeRect(1, 1, 375 - 2, offset - 3);
-
-    // ctx.lineJoin = "bevel";
-    // ctx.strokeStyle = 'rgb(0, 200, 0)';
-
-    // let width = 375;
-    // let height = 533;
-    // ctx.strokeRect(1, offset, width - 2, height - 2);
-    // ctx.strokeRect(225 - 1, 517 - 1, 150, 150);
-
-    // ctx.stroke();
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      const webCamPromise = navigator.mediaDevices
-        .getUserMedia({
-          audio: false,
-          video: {
-            // facingMode: "user"
-            facingMode: "environment",
-            // width: 1280, height: 1920
-          }
+            // schedule the first one.
+            setTimeout(processVideo, 0);
         })
-        .then(stream => {
-          window.stream = stream;
-          this.videoRef.current.srcObject = stream;
-          return new Promise((resolve, reject) => {
-            this.videoRef.current.onloadedmetadata = () => {
-              resolve();
-            };
-          });
+        .catch(function (err) {
+            console.log("An error occurred! " + err);
         });
-
-      const modelPromise = load_model();
-
-      Promise.all([modelPromise, webCamPromise])
-        .then(values => {
-          // this.detectFrame(this.videoRef.current, values[0]);
-          this.processVideo(this.videoRef.current);
-        })
-        .catch(error => {
-          console.error(error);
-        });
-    }
-  }
-  processVideo = (video) => {
-
-
-  };
-
-  detectFrame = (video, model) => {
-    tf.engine().startScope();
-    model.executeAsync(this.process_input(video)).then(predictions => {
-      this.renderPredictions(predictions, video);
-      requestAnimationFrame(() => {
-        this.detectFrame(video, model);
-      });
-      tf.engine().endScope();
-    });
-  };
-
-  process_input (video_frame) {
-    const tfimg = tf.browser.fromPixels(video_frame).toInt();
-    const expandedimg = tfimg.transpose([0, 1, 2]).expandDims();
-    return expandedimg;
-  };
-
-  buildDetectedObjects (scores, threshold, boxes, classes, classesDir) {
-    const detectionObjects = [];
-    var video_frame = document.getElementById('frame');
-
-    scores[0].forEach((score, i) => {
-      if (score > threshold) {
-        const bbox = [];
-        const minY = boxes[0][i][0] * video_frame.offsetHeight;
-        const minX = boxes[0][i][1] * video_frame.offsetWidth;
-        const maxY = boxes[0][i][2] * video_frame.offsetHeight;
-        const maxX = boxes[0][i][3] * video_frame.offsetWidth;
-        bbox[0] = minX;
-        bbox[1] = minY;
-        bbox[2] = maxX - minX;
-        bbox[3] = maxY - minY;
-        detectionObjects.push({
-          class: classes[i],
-          label: classesDir[classes[i]].name,
-          score: score.toFixed(4),
-          bbox: bbox
-        });
-      }
-    });
-    return detectionObjects;
-  }
-
-  renderPredictions = predictions => {
-    const ctx = this.canvasRef.current.getContext("2d");
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    // Font options.
-    const font = "16px sans-serif";
-    ctx.font = font;
-    ctx.textBaseline = "top";
-
-    //Getting predictions
-    const boxes = predictions[4].arraySync();
-    const scores = predictions[5].arraySync();
-    const classes = predictions[6].dataSync();
-    const detections = this.buildDetectedObjects(scores, threshold,
-      boxes, classes, classesDir);
-
-    detections.forEach(item => {
-      const x = item['bbox'][0];
-      const y = item['bbox'][1];
-      const width = item['bbox'][2];
-      const height = item['bbox'][3];
-
-      // Draw the bounding box.
-      ctx.strokeStyle = "#00FFFF";
-      ctx.lineWidth = 4;
-      ctx.strokeRect(x, y, width, height);
-
-      // Draw the label background.
-      ctx.fillStyle = "#00FFFF";
-      const textWidth = ctx.measureText(item["label"] + " " + (100 * item["score"]).toFixed(2) + "%").width;
-      const textHeight = parseInt(font, 10); // base 10
-      ctx.fillRect(x, y, textWidth + 4, textHeight + 4);
-    });
-
-    detections.forEach(item => {
-      const x = item['bbox'][0];
-      const y = item['bbox'][1];
-
-      // Draw the text last to ensure it's on top.
-      ctx.fillStyle = "#000000";
-      ctx.fillText(item["label"] + " " + (100 * item["score"]).toFixed(2) + "%", x, y);
-    });
-  };
-
-
-  render () {
-    return (
-      <div>
-        <video
-          // style={{ height: '667px', width: "375" }}
-          className="size video"
-          autoPlay
-          playsInline
-          muted
-          ref={this.videoRef}
-          width="375"
-          height="667"
-          id="frame"
-        />
-        <canvas
-          className="size canvas"
-          ref={this.canvasRef}
-          width="375"
-          height="667"
-        />
-      </div>
-    );
-  }
 }
-
-const rootElement = document.getElementById("root");
-ReactDOM.render(<App />, rootElement);
