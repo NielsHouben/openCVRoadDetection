@@ -7,11 +7,15 @@
     <script src="src/blobDetection.js"></script>
     <link href="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.min.css" rel="stylesheet">
     <script src="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.js"></script>
+    <link rel="icon" type="image/png" href="https://docs.opencv.org/3.4/opencv-logo-small.png">
+
 </head>
 
 <body>
     <div>
-        <video id="videoInput" playsinline></video> <canvas id="canvasOutput"></canvas>
+        <video id="videoInput" playsinline></video>
+        <canvas id="canvasOutput"></canvas>
+        <canvas id="canvasOutput2"></canvas>
         <button id="startCameraButton" onclick="startCamera()" disabled>startCamera </button>
 
         <div id="r"></div>
@@ -39,7 +43,7 @@
         var rShow = document.getElementById('rShow');
         var gShow = document.getElementById('gShow');
         var bShow = document.getElementById('bShow');
-        let threshold = { min: { r: 97, g: 160, b: 75 }, max: { r: 255, g: 255, b: 255 } };
+        let threshold = { min: { r: 230, g: 230, b: 230 }, max: { r: 255, g: 255, b: 255 } };
 
 
         let options = {
@@ -51,20 +55,21 @@
         };
 
         noUiSlider.create(r, { ...options, start: [threshold.min.r, threshold.max.r] });
+        noUiSlider.create(g, { ...options, start: [threshold.min.g, threshold.max.g] });
+        noUiSlider.create(b, { ...options, start: [threshold.min.b, threshold.max.b] });
+
         r.noUiSlider.on('update', function (values, handle) {
             threshold.min.r = parseInt(values[0]);
             threshold.max.r = parseInt(values[1]);
             rShow.innerText = `${values[0]}-${values[1]}`;
         });
 
-        noUiSlider.create(g, { ...options, start: [threshold.min.g, threshold.max.g] });
         g.noUiSlider.on('update', function (values, handle) {
             threshold.min.g = parseInt(values[0]);
             threshold.max.g = parseInt(values[1]);
             gShow.innerText = `${values[0]}-${values[1]}`;
         });
 
-        noUiSlider.create(b, { ...options, start: [threshold.min.b, threshold.max.b] });
         b.noUiSlider.on('update', function (values, handle) {
             threshold.min.b = parseInt(values[0]);
             threshold.max.b = parseInt(values[1]);
@@ -105,8 +110,8 @@
         };
         // Adapted from https://docs.opencv.org/3.4/dd/d00/tutorial_js_video_display.html
         let video = document.getElementById("videoInput"); // video is the id of video tag
-        video.width = 640;
-        video.height = 480;
+        // video.width = 640;
+        // video.height = 480;
 
         // make button available here
         function onOpenCvReady () {
@@ -115,6 +120,8 @@
         }
 
         async function startCamera () {
+            document.getElementById("startCameraButton").remove();
+
             const stream = await navigator.mediaDevices
                 .getUserMedia({
                     video: {
@@ -129,21 +136,34 @@
 
             video.srcObject = stream;
             video.play();
-            // alert(video.srcObject);
 
+
+
+        }
+        video.addEventListener("playing", () => {
+            // alert(video.videoWidth, video.videoHeight);
+
+            startVideoProcessing();
+        });
+
+        function startVideoProcessing () {
+            // schedule the first one.
+            // alert(video.srcObject);
+            // alert(video.videoWidth);
+            video.width = video.videoWidth;
+            video.height = video.videoHeight;
+            //WHEN BACK: MAKE ELEMENT UNDER LEFT PART SHOW AMOUNT OF WHITE PIXELS ON LEFT PART11
+
+
+            //THIS MIGHT BE WHERE ORIENTATION GETS FUCKED CUZ THEY START WITH HEIGHT
             let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
             let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
             let cap = new cv.VideoCapture(video);
-
-            let lower = [0, 50, 0, 0];
-            let higher = [100, 255, 100, 255];
 
             //kinda works for edge detection
             // let lower = [0, 50, 0, 0];
             // let higher = [100, 255, 100, 255];
 
-            // let src = cv.imread('canvasInput');
-            // let dst = new cv.Mat();
             // const FPS = 30;
             const FPS = 30;
             function processVideo () {
@@ -165,9 +185,10 @@
                     // cv.cvtColor(src, dst, cv.COLOR_RGBA2RGB);
 
                     cv.inRange(src, low, high, dst);
-                    let ksize = new cv.Size(9, 9);
+
+                    // let ksize = new cv.Size(9, 9);
                     // You can try more different parameters
-                    cv.GaussianBlur(dst, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
+                    // cv.GaussianBlur(dst, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
 
                     // let keypoints = simpleBlobDetector(src, params);
                     // for (const keypoint of keypoints) {
@@ -177,7 +198,43 @@
                     //     cv.circle(dst, center, keypoint.size, [255, 0, 0, 255], 3);
                     // }
                     // cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+
+                    // console.log(dst.isContinuous());
+
+
+                    // for (let i = 0; i < dst.data.length; i++) {
+                    //     const value = dst.data[i];
+                    //     if (value != 0) {
+                    //         console.log(value, i);
+                    //     }
+                    // }
+
+
+                    //split it up into three, on for left, one for center, one for right
+                    //DO THIS USING ROI
+                    // let right = video.width;
+                    let left = new cv.Mat();
+                    // let rect = new cv.Rect(0, 0, video.height, video.width * 0.4);
+                    let rect = new cv.Rect(0, 0, video.width * 0.4, video.height);
+                    left = dst.roi(rect);
+                    // for (let i = 0; i < left.data.length; i++) {
+                    //     const value = left.data[i];
+                    //     if (value != 0) {
+                    //         console.log(value, i);
+                    //     }
+                    // }
+                    console.log(left.data.filter(x => x != 0).length);
+
+
+                    cv.imshow('canvasOutput2', left);
+                    // src.delete();
+                    // dst.delete();
+
+
+
                     cv.imshow("canvasOutput", dst);
+
+                    left.delete();
 
                     low.delete(); high.delete();
 
@@ -189,9 +246,8 @@
                     console.error(err);
                 }
             }
-
-            // schedule the first one.
             setTimeout(processVideo, 0);
+
         }
 
     </script>
@@ -208,10 +264,33 @@
         margin: 1em;
     }
 
-    .noUi-horizontal,
-    .noUi-vertical .noUi-handle .noUi-connect {
+    #r .noUi-connect {
+
         background: red;
     }
+
+    button {
+        width: 60vw;
+        height: 40vh;
+    }
+
+    /* #r .noUi-handle-lower {
+        background: rgba(255, 0, 0, 0.7)
+    } */
+
+
+    #g .noUi-connect {
+        background: green;
+    }
+
+    #b .noUi-connect {
+        background: blue;
+    }
+
+    /* .noUi-horizontal,
+    .noUi-vertical .noUi-handle .noUi-connect {
+        background: red;
+    } */
 </style>
 
 </html>
