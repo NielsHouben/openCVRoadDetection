@@ -15,7 +15,17 @@
     <div>
         <video id="videoInput" playsinline></video>
         <canvas id="canvasOutput"></canvas>
-        <canvas id="canvasOutput2"></canvas>
+        <div id="output">
+
+            <canvas id="canvasOutputLeft"></canvas>
+            <canvas id="canvasOutputCenter"></canvas>
+            <canvas id="canvasOutputRight"></canvas>
+            <!-- <br> -->
+            <span id="leftPixelCount">420</span>
+            <span id="centerPixelCount">69</span>
+            <span id="rightPixelCount">0</span>
+        </div>
+
         <button id="startCameraButton" onclick="startCamera()" disabled>startCamera </button>
 
         <div id="r"></div>
@@ -43,6 +53,11 @@
         var rShow = document.getElementById('rShow');
         var gShow = document.getElementById('gShow');
         var bShow = document.getElementById('bShow');
+
+        let leftPixelCount = document.getElementById('leftPixelCount');
+        let centerPixelCount = document.getElementById('centerPixelCount');
+        let rightPixelCount = document.getElementById('rightPixelCount');
+
         let threshold = { min: { r: 230, g: 230, b: 230 }, max: { r: 255, g: 255, b: 255 } };
 
 
@@ -165,6 +180,9 @@
             // let higher = [100, 255, 100, 255];
 
             // const FPS = 30;
+            let leftRect = new cv.Rect(0, 0, video.width * 0.4, video.height);
+            let centerRect = new cv.Rect(video.width * 0.4, 0, video.width * 0.2, video.height);
+            let rightRect = new cv.Rect(video.width * 0.6, 0, video.width * 0.4, video.height);
             const FPS = 30;
             function processVideo () {
                 try {
@@ -214,19 +232,30 @@
                     //DO THIS USING ROI
                     // let right = video.width;
                     let left = new cv.Mat();
+                    let center = new cv.Mat();
+                    let right = new cv.Mat();
                     // let rect = new cv.Rect(0, 0, video.height, video.width * 0.4);
-                    let rect = new cv.Rect(0, 0, video.width * 0.4, video.height);
-                    left = dst.roi(rect);
+                    left = dst.roi(leftRect);
+                    center = dst.roi(centerRect);
+                    right = dst.roi(rightRect);
+
+                    // let centerRect = new cv.Rect(0, 0, video.width * 0.4, video.height);
+                    // left = dst.roi(rect);
                     // for (let i = 0; i < left.data.length; i++) {
                     //     const value = left.data[i];
                     //     if (value != 0) {
                     //         console.log(value, i);
                     //     }
                     // }
-                    console.log(left.data.filter(x => x != 0).length);
+                    // console.log(left.data.filter(x => x != 0).length);
+                    leftPixelCount.innerText = left.data.filter(x => x != 0).length;
+                    centerPixelCount.innerText = center.data.filter(x => x != 0).length;
+                    rightPixelCount.innerText = right.data.filter(x => x != 0).length;
 
 
-                    cv.imshow('canvasOutput2', left);
+                    cv.imshow('canvasOutputLeft', left);
+                    cv.imshow('canvasOutputCenter', center);
+                    cv.imshow('canvasOutputRight', right);
                     // src.delete();
                     // dst.delete();
 
@@ -234,9 +263,7 @@
 
                     cv.imshow("canvasOutput", dst);
 
-                    left.delete();
-
-                    low.delete(); high.delete();
+                    left.delete(); center.delete(); right.delete(); low.delete(); high.delete();
 
 
                     // schedule the next one.
@@ -291,6 +318,13 @@
     .noUi-vertical .noUi-handle .noUi-connect {
         background: red;
     } */
+    #output {
+        display: grid;
+        grid-template-columns: auto auto auto;
+        /* column-gap: 10px; */
+        font-size: 40px;
+
+    }
 </style>
 
 </html>
