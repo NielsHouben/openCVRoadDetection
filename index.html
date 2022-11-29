@@ -113,7 +113,7 @@
             minArea: 200,
             maxArea: 5000,
 
-            filterByCircularity: true,
+            filterByCircularity: false,
             minCircularity: 100,
             maxCircularity: 1000000,
 
@@ -214,73 +214,71 @@
 
                     cv.inRange(src, low, high, dst);
 
-                    const contours = new cv.MatVector();
-                    const hierarchy = new cv.Mat();
-                    const binaryImage = new cv.Mat(dst.rows, dst.cols, cv.CV_8UC1);
+                    // const contours = new cv.MatVector();
+                    // const hierarchy = new cv.Mat();
+                    // const binaryImage = new cv.Mat(dst.rows, dst.cols, cv.CV_8UC1);
 
                     //faster
                     // cv.findContours(binaryImage, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
-                    cv.findContours(binaryImage, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_NONE);
-                    hierarchy.delete();
-                    binaryImage.delete();
+                    // cv.findContours(binaryImage, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_NONE);
+                    // hierarchy.delete();
+                    // binaryImage.delete();
 
-                    let c = contours.size();
-                    // console.log(c);
+                    // let centers = [];
+                    // const objectsToDelete = [];
+                    // for (let i = 0; i < contours.size(); i++) {
+                    //     const contour = contours.get(i);
+                    //     objectsToDelete.push(contour);
+                    //     let area = cv.contourArea(contour);
+                    //     if (area == 0) continue;
 
+                    //     let center, moms;
+                    //     const { x, y, width, height } = cv.boundingRect(contour);
+                    //     center = {
+                    //         confidence: 1,
+                    //         location: { x: x + width / 2, y: y + height / 2 },
+                    //         radius: (width + height) / 4,
+                    //     };
 
-                    let centers = [];
-                    const objectsToDelete = [];
-                    for (let i = 0; i < contours.size(); i++) {
-                        const contour = contours.get(i);
-                        objectsToDelete.push(contour);
-                        let area = cv.contourArea(contour);
-                        if (area == 0) continue;
+                    //     if (area < params.minArea || area >= params.maxArea) continue;
 
-                        let center, moms;
-                        const { x, y, width, height } = cv.boundingRect(contour);
-                        center = {
-                            confidence: 1,
-                            location: { x: x + width / 2, y: y + height / 2 },
-                            radius: (width + height) / 4,
-                        };
+                    //     centers.push(center);
 
-                        if (area < params.minArea || area >= params.maxArea) continue;
+                    // }
+                    // objectsToDelete.forEach(obj => obj.delete());
+                    // contours.delete();
 
-                        centers.push(center);
+                    // // console.log(centers);
+                    // if (centers.length > 0) {
+                    //     console.log(centers[0]);
+                    //     for (let center of centers) {
+                    //         // console.log(center);
 
-                    }
-                    objectsToDelete.forEach(obj => obj.delete());
-                    contours.delete();
+                    //         const middle = new cv.Point(center.location.x, center.location.y);
 
-                    // console.log(centers);
-                    if (centers.length > 0) {
-                        console.log(centers[0]);
-                        for (let center of centers) {
-                            // console.log(center);
-
-                            const middle = new cv.Point(center.location.x, center.location.y);
-
-                            console.log(middle);
-                            cv.circle(dst2, middle, center.radius, [255, 0, 0, 255], 3);
-                        }
-                    }
+                    //         console.log(middle);
+                    //         cv.circle(dst2, middle, center.radius, [255, 0, 0, 255], 3);
+                    //     }
+                    // }
 
 
-                    centers = [];
+                    // centers = [];
 
                     // let ksize = new cv.Size(9, 9);
                     // You can try more different parameters
                     // cv.GaussianBlur(dst, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
 
-                    // let keypoints = simpleBlobDetector(src, params);
-                    // for (const keypoint of keypoints) {
 
-                    //     const center = new cv.Point(keypoint.pt.x, keypoint.pt.y);
-                    //     // console.log(center);
-                    //     cv.circle(dst, center, keypoint.size, [255, 0, 0, 255], 3);
-                    // }
-                    // cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+                    //convering because simpleBlobDetector needs it, but it is not the way
+                    cv.cvtColor(dst, dst, cv.COLOR_GRAY2RGBA, 0);
+                    let keypoints = simpleBlobDetector(dst, params);
+                    for (const keypoint of keypoints) {
+
+                        const center = new cv.Point(keypoint.pt.x, keypoint.pt.y);
+                        // console.log(center);
+                        cv.circle(dst2, center, keypoint.size, [255, 0, 0, 255], 3);
+                    }
 
                     // console.log(dst.isContinuous());
 
