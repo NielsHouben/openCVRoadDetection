@@ -13,27 +13,29 @@
 
 <body>
     <div>
+        <button id="startCameraButton" onclick="startCamera()" disabled>startCamera </button>
         <video id="videoInput" playsinline></video>
+        <div>
+            <div id="r"></div>
+            <span id="rShow"></span>
+            <div id="g"></div>
+            <span id="gShow"></span>
+            <div id="b"></div>
+            <span id="bShow"></span>
+        </div>
         <canvas id="canvasOutput"></canvas>
-        <div id="output">
+        <canvas id="canvasOutput2"></canvas>
+        <!-- <div id="output">
 
             <canvas id="canvasOutputLeft"></canvas>
             <canvas id="canvasOutputCenter"></canvas>
             <canvas id="canvasOutputRight"></canvas>
-            <!-- <br> -->
             <span id="leftPixelCount">420</span>
             <span id="centerPixelCount">69</span>
             <span id="rightPixelCount">0</span>
-        </div>
+        </div> -->
 
-        <button id="startCameraButton" onclick="startCamera()" disabled>startCamera </button>
 
-        <div id="r"></div>
-        <span id="rShow"></span>
-        <div id="g"></div>
-        <span id="gShow"></span>
-        <div id="b"></div>
-        <span id="bShow"></span>
 
 
     </div>
@@ -58,7 +60,11 @@
         let centerPixelCount = document.getElementById('centerPixelCount');
         let rightPixelCount = document.getElementById('rightPixelCount');
 
-        let threshold = { min: { r: 230, g: 230, b: 230 }, max: { r: 255, g: 255, b: 255 } };
+        // light
+        // let threshold = { min: { r: 230, g: 230, b: 230 }, max: { r: 255, g: 255, b: 255 } };
+
+        // orange
+        let threshold = { min: { r: 179, g: 56, b: 80 }, max: { r: 255, g: 150, b: 190 } };
 
 
         let options = {
@@ -173,6 +179,7 @@
             //THIS MIGHT BE WHERE ORIENTATION GETS FUCKED CUZ THEY START WITH HEIGHT
             let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
             let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+            let dst2 = new cv.Mat(video.height, video.width, cv.CV_8UC4);
             let cap = new cv.VideoCapture(video);
 
             //kinda works for edge detection
@@ -180,9 +187,9 @@
             // let higher = [100, 255, 100, 255];
 
             // const FPS = 30;
-            let leftRect = new cv.Rect(0, 0, video.width * 0.4, video.height);
-            let centerRect = new cv.Rect(video.width * 0.4, 0, video.width * 0.2, video.height);
-            let rightRect = new cv.Rect(video.width * 0.6, 0, video.width * 0.4, video.height);
+            // let leftRect = new cv.Rect(0, 0, video.width * 0.4, video.height);
+            // let centerRect = new cv.Rect(video.width * 0.4, 0, video.width * 0.2, video.height);
+            // let rightRect = new cv.Rect(video.width * 0.6, 0, video.width * 0.4, video.height);
             const FPS = 30;
             function processVideo () {
                 try {
@@ -194,15 +201,73 @@
                     //   dst.delete();
                     //   return;
                     // }
+                    // let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+                    // let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
 
                     //faster if only defined once outside, but then cant change threshold
                     let low = new cv.Mat(src.rows, src.cols, src.type(), [threshold.min.r, threshold.min.g, threshold.min.b, 0]);
                     let high = new cv.Mat(src.rows, src.cols, src.type(), [threshold.max.r, threshold.max.g, threshold.max.b, 255]);
                     // start processing.
+                    cap.read(dst2);
                     cap.read(src);
                     // cv.cvtColor(src, dst, cv.COLOR_RGBA2RGB);
 
                     cv.inRange(src, low, high, dst);
+
+                    const contours = new cv.MatVector();
+                    const hierarchy = new cv.Mat();
+                    const binaryImage = new cv.Mat(dst.rows, dst.cols, cv.CV_8UC1);
+
+                    //faster
+                    // cv.findContours(binaryImage, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+                    cv.findContours(binaryImage, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_NONE);
+                    hierarchy.delete();
+                    binaryImage.delete();
+
+                    let c = contours.size();
+                    // console.log(c);
+
+
+                    let centers = [];
+                    const objectsToDelete = [];
+                    for (let i = 0; i < contours.size(); i++) {
+                        const contour = contours.get(i);
+                        objectsToDelete.push(contour);
+                        let area = cv.contourArea(contour);
+                        if (area == 0) continue;
+
+                        let center, moms;
+                        const { x, y, width, height } = cv.boundingRect(contour);
+                        center = {
+                            confidence: 1,
+                            location: { x: x + width / 2, y: y + height / 2 },
+                            radius: (width + height) / 4,
+                        };
+
+                        if (area < params.minArea || area >= params.maxArea) continue;
+
+                        centers.push(center);
+
+                    }
+                    objectsToDelete.forEach(obj => obj.delete());
+                    contours.delete();
+
+                    // console.log(centers);
+                    if (centers.length > 0) {
+                        console.log(centers[0]);
+                        for (let center of centers) {
+                            // console.log(center);
+
+                            const middle = new cv.Point(center.location.x, center.location.y);
+
+                            console.log(middle);
+                            cv.circle(dst2, middle, center.radius, [255, 0, 0, 255], 3);
+                        }
+                    }
+
+
+                    centers = [];
 
                     // let ksize = new cv.Size(9, 9);
                     // You can try more different parameters
@@ -230,40 +295,33 @@
 
                     //split it up into three, on for left, one for center, one for right
                     //DO THIS USING ROI
-                    // let right = video.width;
-                    let left = new cv.Mat();
-                    let center = new cv.Mat();
-                    let right = new cv.Mat();
-                    // let rect = new cv.Rect(0, 0, video.height, video.width * 0.4);
-                    left = dst.roi(leftRect);
-                    center = dst.roi(centerRect);
-                    right = dst.roi(rightRect);
+                    // let left = new cv.Mat();
+                    // let center = new cv.Mat();
+                    // let right = new cv.Mat();
 
-                    // let centerRect = new cv.Rect(0, 0, video.width * 0.4, video.height);
-                    // left = dst.roi(rect);
-                    // for (let i = 0; i < left.data.length; i++) {
-                    //     const value = left.data[i];
-                    //     if (value != 0) {
-                    //         console.log(value, i);
-                    //     }
-                    // }
-                    // console.log(left.data.filter(x => x != 0).length);
-                    leftPixelCount.innerText = left.data.filter(x => x != 0).length;
-                    centerPixelCount.innerText = center.data.filter(x => x != 0).length;
-                    rightPixelCount.innerText = right.data.filter(x => x != 0).length;
+                    // left = dst.roi(leftRect);
+                    // center = dst.roi(centerRect);
+                    // right = dst.roi(rightRect);
+
+                    // leftPixelCount.innerText = left.data.filter(x => x != 0).length;
+                    // centerPixelCount.innerText = center.data.filter(x => x != 0).length;
+                    // rightPixelCount.innerText = right.data.filter(x => x != 0).length;
 
 
-                    cv.imshow('canvasOutputLeft', left);
-                    cv.imshow('canvasOutputCenter', center);
-                    cv.imshow('canvasOutputRight', right);
-                    // src.delete();
-                    // dst.delete();
+                    // cv.imshow('canvasOutputLeft', left);
+                    // cv.imshow('canvasOutputCenter', center);
+                    // cv.imshow('canvasOutputRight', right);
+
+                    // left.delete(); center.delete(); right.delete(); 
 
 
-
+                    cv.imshow("canvasOutput2", dst2);
                     cv.imshow("canvasOutput", dst);
 
-                    left.delete(); center.delete(); right.delete(); low.delete(); high.delete();
+
+                    low.delete(); high.delete();
+                    // src.delete();
+                    // dst.delete();
 
 
                     // schedule the next one.
@@ -322,6 +380,7 @@
         display: grid;
         grid-template-columns: auto auto auto;
         /* column-gap: 10px; */
+        align-items: start;
         font-size: 40px;
 
     }
