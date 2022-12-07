@@ -298,6 +298,7 @@
                     for (const keypoint of keypoints) {
 
                         const center = new cv.Point(keypoint.pt.x, keypoint.pt.y);
+                        sendPos(keypoint.pt.x);
                         // console.log(center);
                         cv.circle(dst2, center, keypoint.size, [255, 0, 0, 255], 3);
                     }
