@@ -3,8 +3,10 @@ import mqtt from 'mqtt/dist/mqtt';
 // import store from '../store';
 let mystore = null;
 
-const host = '81.229.145.235';
-const port = '2983';
+// const host = '81.229.145.235';
+// const port = '2983';
+const host = '10.22.5.8';
+const port = '8883';
 const clientId = `webbClient#mqtt_${Math.random().toString(8).slice(3)}`;
 
 const connectUrl = `mqtt://${host}:${port}`;
@@ -19,25 +21,32 @@ const client = mqtt.connect(connectUrl, {
   reconnectPeriod: 1000,
 });
 
-const topic = '/test/something';
-// const topic = 'isak.fogelberg@abbgymnasiet.se/speed';
-client.on('connect', () => {
-  console.log('Connected');
-  client.subscribe([topic, '/NH/aSpeed'], () => {
-    console.log(`Subscribe to topic '${topic}'`);
-  });
-});
-
-
-
-
 function publish (pubTopic = topic, payload = 'hello world') {
+  console.log("published to ", pubTopic, payload);
   client.publish(pubTopic, payload, { qos: 0, retain: false }, (error) => {
     if (error) {
       console.error(error);
     }
   });
 }
+
+const topic = '/pos';
+// const topic = 'isak.fogelberg@abbgymnasiet.se/speed';
+client.on('connect', () => {
+  console.log('Connected');
+  client.subscribe([topic, '/NH/aSpeed'], () => {
+    console.log(`Subscribe to topic '${topic}'`);
+  });
+
+});
+
+setTimeout(() => {
+  publish("/pos", "100");
+
+}, 2000);
+
+
+
 
 // setInterval(() => {
 //   publish();
