@@ -22,6 +22,9 @@
             <span id="gShow"></span>
             <div id="b"></div>
             <span id="bShow"></span>
+
+            <div id="area"></div>
+            <span id="areaShow"></span>
         </div>
         <canvas id="canvasOutput"></canvas>
         <canvas id="canvasOutput2"></canvas>
@@ -40,71 +43,12 @@
 
     </div>
     <script>
-        // let sliderFromR = document.getElementById("fromR");
-        // let sliderFromG = document.getElementById("fromG");
-        // let sliderFromB = document.getElementById("fromB");
-
-        // let sliderToR = document.getElementById("toR");
-        // let sliderToG = document.getElementById("toG");
-        // let sliderToB = document.getElementById("toB");
-
-        var r = document.getElementById('r');
-        var g = document.getElementById('g');
-        var b = document.getElementById('b');
-
-        var rShow = document.getElementById('rShow');
-        var gShow = document.getElementById('gShow');
-        var bShow = document.getElementById('bShow');
-
-        let leftPixelCount = document.getElementById('leftPixelCount');
-        let centerPixelCount = document.getElementById('centerPixelCount');
-        let rightPixelCount = document.getElementById('rightPixelCount');
-
-        // light
-        // let threshold = { min: { r: 230, g: 230, b: 230 }, max: { r: 255, g: 255, b: 255 } };
-
-        // orange
-        let threshold = { min: { r: 179, g: 56, b: 80 }, max: { r: 255, g: 150, b: 190 } };
-
-
-        let options = {
-            start: [0, 255],
-            connect: true,
-            range: { 'min': 0, 'max': 255 },
-            margin: 1,
-            step: 1,
-        };
-
-        noUiSlider.create(r, { ...options, start: [threshold.min.r, threshold.max.r] });
-        noUiSlider.create(g, { ...options, start: [threshold.min.g, threshold.max.g] });
-        noUiSlider.create(b, { ...options, start: [threshold.min.b, threshold.max.b] });
-
-        r.noUiSlider.on('update', function (values, handle) {
-            threshold.min.r = parseInt(values[0]);
-            threshold.max.r = parseInt(values[1]);
-            rShow.innerText = `${values[0]}-${values[1]}`;
-        });
-
-        g.noUiSlider.on('update', function (values, handle) {
-            threshold.min.g = parseInt(values[0]);
-            threshold.max.g = parseInt(values[1]);
-            gShow.innerText = `${values[0]}-${values[1]}`;
-        });
-
-        b.noUiSlider.on('update', function (values, handle) {
-            threshold.min.b = parseInt(values[0]);
-            threshold.max.b = parseInt(values[1]);
-            bShow.innerText = `${values[0]}-${values[1]}`;
-        });
-
-
-
         const params = {
             thresholdStep: 10,
             minThreshold: 50,
             maxThreshold: 220,
             minRepeatability: 0,
-            minDistBetweenBlobs: 10,
+            minDistBetweenBlobs: 20,
 
             filterByColor: false,
             blobColor: 255,
@@ -129,10 +73,84 @@
 
             faster: true,
         };
+        // let sliderFromR = document.getElementById("fromR");
+        // let sliderFromG = document.getElementById("fromG");
+        // let sliderFromB = document.getElementById("fromB");
+
+        // let sliderToR = document.getElementById("toR");
+        // let sliderToG = document.getElementById("toG");
+        // let sliderToB = document.getElementById("toB");
+
+        var r = document.getElementById('r');
+        var g = document.getElementById('g');
+        var b = document.getElementById('b');
+        var area = document.getElementById('area');
+
+        var rShow = document.getElementById('rShow');
+        var gShow = document.getElementById('gShow');
+        var bShow = document.getElementById('bShow');
+        var areaShow = document.getElementById('areaShow');
+
+        let leftPixelCount = document.getElementById('leftPixelCount');
+        let centerPixelCount = document.getElementById('centerPixelCount');
+        let rightPixelCount = document.getElementById('rightPixelCount');
+
+        // light
+        // let threshold = { min: { r: 230, g: 230, b: 230 }, max: { r: 255, g: 255, b: 255 } };
+
+        // orange
+        // let threshold = { min: { r: 179, g: 56, b: 80 }, max: { r: 255, g: 150, b: 190 } };
+        //phone orange
+        let threshold = { min: { r: 155, g: 58, b: 17 }, max: { r: 255, g: 133, b: 130 } };
+
+
+        let options = {
+            start: [0, 255],
+            connect: true,
+            range: { 'min': 0, 'max': 255 },
+            margin: 1,
+            step: 1,
+        };
+
+        noUiSlider.create(r, { ...options, start: [threshold.min.r, threshold.max.r] });
+        noUiSlider.create(g, { ...options, start: [threshold.min.g, threshold.max.g] });
+        noUiSlider.create(b, { ...options, start: [threshold.min.b, threshold.max.b] });
+        noUiSlider.create(area, {
+            start: [200, 5000],
+            connect: true,
+            range: { 'min': 0, 'max': 10000 },
+            margin: 1,
+            step: 1,
+        });
+
+        area.noUiSlider.on('update', function (values, handle) {
+            params.minArea = parseInt(values[0]);
+            params.maxArea = parseInt(values[1]);
+            areaShow.innerText = `${values[0]}-${values[1]}`;
+        });
+
+        r.noUiSlider.on('update', function (values, handle) {
+            threshold.min.r = parseInt(values[0]);
+            threshold.max.r = parseInt(values[1]);
+            rShow.innerText = `${values[0]}-${values[1]}`;
+        });
+
+        g.noUiSlider.on('update', function (values, handle) {
+            threshold.min.g = parseInt(values[0]);
+            threshold.max.g = parseInt(values[1]);
+            gShow.innerText = `${values[0]}-${values[1]}`;
+        });
+
+        b.noUiSlider.on('update', function (values, handle) {
+            threshold.min.b = parseInt(values[0]);
+            threshold.max.b = parseInt(values[1]);
+            bShow.innerText = `${values[0]}-${values[1]}`;
+        });
+
+
+
         // Adapted from https://docs.opencv.org/3.4/dd/d00/tutorial_js_video_display.html
         let video = document.getElementById("videoInput"); // video is the id of video tag
-        // video.width = 640;
-        // video.height = 480;
 
         // make button available here
         function onOpenCvReady () {
@@ -158,8 +176,6 @@
             video.srcObject = stream;
             video.play();
 
-
-
         }
         video.addEventListener("playing", () => {
             // alert(video.videoWidth, video.videoHeight);
@@ -178,6 +194,8 @@
 
             //THIS MIGHT BE WHERE ORIENTATION GETS FUCKED CUZ THEY START WITH HEIGHT
             let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+            let rgb = new cv.Mat(video.height, video.width, cv.CV_8UC3);
+            let hsv = new cv.Mat(video.height, video.width, cv.CV_8UC4);
             let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
             let dst2 = new cv.Mat(video.height, video.width, cv.CV_8UC4);
             let cap = new cv.VideoCapture(video);
@@ -186,7 +204,6 @@
             // let lower = [0, 50, 0, 0];
             // let higher = [100, 255, 100, 255];
 
-            // const FPS = 30;
             // let leftRect = new cv.Rect(0, 0, video.width * 0.4, video.height);
             // let centerRect = new cv.Rect(video.width * 0.4, 0, video.width * 0.2, video.height);
             // let rightRect = new cv.Rect(video.width * 0.6, 0, video.width * 0.4, video.height);
@@ -204,13 +221,18 @@
                     // let src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
                     // let dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
 
-                    //faster if only defined once outside, but then cant change threshold
-                    let low = new cv.Mat(src.rows, src.cols, src.type(), [threshold.min.r, threshold.min.g, threshold.min.b, 0]);
-                    let high = new cv.Mat(src.rows, src.cols, src.type(), [threshold.max.r, threshold.max.g, threshold.max.b, 255]);
                     // start processing.
                     cap.read(dst2);
                     cap.read(src);
-                    // cv.cvtColor(src, dst, cv.COLOR_RGBA2RGB);
+
+                    // cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
+                    // cv.cvtColor(rgb, hsv, cv.COLOR_RGB2HSV);
+
+                    //faster if only defined once outside, but then cant change threshold
+                    let low = new cv.Mat(src.rows, src.cols, src.type(), [threshold.min.r, threshold.min.g, threshold.min.b, 0]);
+                    let high = new cv.Mat(src.rows, src.cols, src.type(), [threshold.max.r, threshold.max.g, threshold.max.b, 255]);
+                    // let low = cv.matFromArray(hsv.rows, hsv.cols, hsv.type(), [threshold.min.r, threshold.min.g, threshold.min.b, 0]);
+                    // let high = cv.matFromArray(hsv.rows, hsv.cols, hsv.type(), [threshold.max.r, threshold.max.g, threshold.max.b, 255]);
 
                     cv.inRange(src, low, high, dst);
 
