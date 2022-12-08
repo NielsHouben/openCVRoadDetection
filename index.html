@@ -64,8 +64,11 @@
         // connect the client
         client.connect({ onSuccess: onConnect });
 
-        function publish (topic, message) {
-            message = new Paho.MQTT.Message(message);
+        function publish (topic, m) {
+
+            // console.log(m);
+            m = String(m);
+            message = new Paho.MQTT.Message(m);
             message.destinationName = topic;
             client.send(message);
         }
@@ -78,7 +81,6 @@
             client.subscribe("/pos");
 
             publish("/pos", "200");
-
         }
 
         // called when the client loses its connection
@@ -90,7 +92,8 @@
 
         // called when a message arrives
         function onMessageArrived (message) {
-            console.log("onMessageArrived:" + message.payloadString);
+            // console.log("onMessageArrived:" + message.payloadString);
+            console.log(message.payloadString);
         }
 
         // setTimeout(() => {
@@ -355,7 +358,7 @@
                     for (const keypoint of keypoints) {
 
                         const center = new cv.Point(keypoint.pt.x, keypoint.pt.y);
-                        sendPos(keypoint.pt.x);
+                        publish("/pos", keypoint.pt.x);
                         // console.log(center);
                         cv.circle(dst2, center, keypoint.size, [255, 0, 0, 255], 3);
                     }
