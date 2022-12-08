@@ -56,7 +56,6 @@
         // Create a client instance
         client = new Paho.MQTT.Client(host, Number(port), clientId);
 
-
         // set callback handlers
         client.onConnectionLost = onConnectionLost;
         client.onMessageArrived = onMessageArrived;
@@ -65,7 +64,6 @@
         client.connect({ onSuccess: onConnect });
 
         function publish (topic, m) {
-
             // console.log(m);
             m = String(m);
             message = new Paho.MQTT.Message(m);
@@ -73,12 +71,14 @@
             client.send(message);
         }
 
-
         // called when the client connects
         function onConnect () {
-            // Once a connection has been made, make a subscription and send a message.
             console.log("onConnect");
+
             client.subscribe("/pos");
+            client.subscribe("/NHSI/leftPower");
+            client.subscribe("/NHSI/rightPower");
+            console.log("subscribed to /pos");
 
             publish("/pos", "200");
         }
@@ -93,6 +93,7 @@
         // called when a message arrives
         function onMessageArrived (message) {
             // console.log("onMessageArrived:" + message.payloadString);
+            // you can probably extract topic out of message
             console.log(message.payloadString);
         }
 
@@ -356,9 +357,19 @@
                     cv.cvtColor(dst, dst, cv.COLOR_GRAY2RGBA, 0);
                     let keypoints = simpleBlobDetector(dst, params);
                     for (const keypoint of keypoints) {
+                        //maybe use size for speed??
 
                         const center = new cv.Point(keypoint.pt.x, keypoint.pt.y);
-                        publish("/pos", keypoint.pt.x);
+
+                        let x = Math.round(keypoint.pt.x);
+                        //define middle outside!
+                        let middle = video.width / 2;
+                        // console.log("l: ", x / video.width, "r: ", (video.width - x) / video.width);
+                        // console.log("d: ", Math.sqrt((middle - x) ** 2));
+
+                        publish("/NHSI/leftPower", x / video.width);
+                        publish("/NHSI/rightPower", (video.width - x) / video.width);
+
                         // console.log(center);
                         cv.circle(dst2, center, keypoint.size, [255, 0, 0, 255], 3);
                     }
