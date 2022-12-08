@@ -7,6 +7,9 @@
     <script src="src/blobDetection.js"></script>
     <link href="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.min.css" rel="stylesheet">
     <script src="//cdn.bootcss.com/noUiSlider/8.5.1/nouislider.js"></script>
+    <!-- <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+
     <link rel="icon" type="image/png" href="https://docs.opencv.org/3.4/opencv-logo-small.png">
 
 </head>
@@ -43,6 +46,60 @@
 
     </div>
     <script>
+        const host = '10.22.5.8';
+        const port = '8883';
+        // const clientId = `webbClient#mqtt_${Math.random().toString(8).slice(3)}`;
+        const clientId = "bigClient";
+
+        const connectUrl = `mqtt://${host}:${port}`;
+
+        // Create a client instance
+        client = new Paho.MQTT.Client(host, Number(port), clientId);
+
+
+        // set callback handlers
+        client.onConnectionLost = onConnectionLost;
+        client.onMessageArrived = onMessageArrived;
+
+        // connect the client
+        client.connect({ onSuccess: onConnect });
+
+        function publish (topic, message) {
+            message = new Paho.MQTT.Message(message);
+            message.destinationName = topic;
+            client.send(message);
+        }
+
+
+        // called when the client connects
+        function onConnect () {
+            // Once a connection has been made, make a subscription and send a message.
+            console.log("onConnect");
+            client.subscribe("/pos");
+
+            publish("/pos", "200");
+
+        }
+
+        // called when the client loses its connection
+        function onConnectionLost (responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("onConnectionLost:" + responseObject.errorMessage);
+            }
+        }
+
+        // called when a message arrives
+        function onMessageArrived (message) {
+            console.log("onMessageArrived:" + message.payloadString);
+        }
+
+        // setTimeout(() => {
+        //     publish("/pos", "100");
+
+        // }, 2000);
+    </script>
+    <script>
+
         const params = {
             thresholdStep: 10,
             minThreshold: 50,
