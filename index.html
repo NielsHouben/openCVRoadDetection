@@ -16,7 +16,7 @@
 
     <link rel="icon" type="image/png" href="https://docs.opencv.org/3.4/opencv-logo-small.png">
 
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script> -->
 
 
 </head>
@@ -35,6 +35,11 @@
 
             <div id="area"></div>
             <span id="areaShow"></span>
+
+
+            <p>SPEED</p>
+            <div id="speed"></div>
+            <span id="speedShow"></span>
         </div>
         <canvas id="canvasOutput"></canvas>
         <canvas id="canvasOutput2"></canvas>
@@ -53,83 +58,10 @@
 
     </div>
     <script>
-        // console.log(mqtt);
-
-        // const host = '10.22.5.8';
-        // const port = '8883';
-        const host = '0d64678487414d04aa9598dfec7afddd.s2.eu.hivemq.cloud';
-        const port = '8884';
-        const clientId = `webbClient#mqtt_${Math.random().toString(8).slice(3)}`;
-        // const clientId = "bigClientPaho";
-
-        const connectUrl = `mqtts://${host}:${port}`;
-        // console.log(connectUrl);
-
-        // Create a client instance
-        // client = new Paho.MQTT.Client(host, Number(port), clientId);
-        client = new Paho.MQTT.Client(host, Number(port), clientId);
-        // client = new Paho.MQTT.Client(host, Number(port),
-        //     client_id = "bigClientPaho",
-        //     clean_session = True,
-        //     userdata = None,
-        //     protocol = MQTTv311,
-        //     transport = "tcp");
-
-        // set callback handlers
-        client.onConnectionLost = onConnectionLost;
-        client.onMessageArrived = onMessageArrived;
-
-        // connect the client
-        client.connect({
-            onSuccess: onConnect,
-            useSSL: true,
-            userName: "nisse",
-            password: "ostKaka123",
-            keepAliveInterval: 60 * 10 // unsubscribe after 10 min...
-        });
-        // client.connect({ onSuccess: onConnect });
-
-        function publish (topic, m) {
-            console.log(typeof (m));
-            m = String(m);
-
-            message = new Paho.MQTT.Message(m);
-            message.destinationName = topic;
-            client.send(message);
-        }
-
-        // called when the client connects
-        function onConnect () {
-            console.log("onConnect");
-
-            client.subscribe("/pos");
-            client.subscribe("/NHSI/leftPower");
-            client.subscribe("/NHSI/rightPower");
-            console.log("subscribed to /pos");
-
-            publish("/pos", "0.22");
-        }
-
-        // called when the client loses its connection
-        function onConnectionLost (responseObject) {
-            if (responseObject.errorCode !== 0) {
-                console.log("onConnectionLost:" + responseObject.errorMessage);
-            }
-        }
-
-        // called when a message arrives
-        function onMessageArrived (message) {
-            // console.log("onMessageArrived:" + message.payloadString);
-            // you can probably extract topic out of message
-            console.log(message.payloadString);
-        }
-
-        // setTimeout(() => {
-        //     publish("/pos", "100");
-
-        // }, 2000);
-    </script>
-    <script>
+        let lastRightPowers = [];
+        let lastLeftPowers = [];
+        let speedValue = 600;
+        let lastSpeedValue = 0;
 
         const params = {
             thresholdStep: 10,
@@ -173,11 +105,13 @@
         var g = document.getElementById('g');
         var b = document.getElementById('b');
         var area = document.getElementById('area');
+        var speed = document.getElementById('speed');
 
         var rShow = document.getElementById('rShow');
         var gShow = document.getElementById('gShow');
         var bShow = document.getElementById('bShow');
         var areaShow = document.getElementById('areaShow');
+        var speedShow = document.getElementById('speedShow');
 
         let leftPixelCount = document.getElementById('leftPixelCount');
         let centerPixelCount = document.getElementById('centerPixelCount');
@@ -209,6 +143,22 @@
             range: { 'min': 0, 'max': 10000 },
             margin: 1,
             step: 1,
+        });
+        noUiSlider.create(speed, {
+            start: 600,
+            range: { 'min': 0, 'max': 1023 },
+            // connect: true,
+            // range: { 'min': 0, 'max': 10000 },
+            // margin: 1,
+            step: 1,
+        });
+
+        speed.noUiSlider.on('update', function (values, handle) {
+            // params.minArea = parseInt(values[0]);
+            // params.maxArea = parseInt(values[1]);
+            speedValue = parseInt(values[0]);
+            // console.log(speedValue);
+            speedShow.innerText = `${values[0]}`;
         });
 
         area.noUiSlider.on('update', function (values, handle) {
@@ -295,7 +245,7 @@
             // let leftRect = new cv.Rect(0, 0, video.width * 0.4, video.height);
             // let centerRect = new cv.Rect(video.width * 0.4, 0, video.width * 0.2, video.height);
             // let rightRect = new cv.Rect(video.width * 0.6, 0, video.width * 0.4, video.height);
-            const FPS = 5;
+            const FPS = 60;
             function processVideo () {
                 try {
                     let begin = Date.now();
@@ -394,10 +344,14 @@
                         // console.log("l: ", x / video.width, "r: ", (video.width - x) / video.width);
                         // console.log("d: ", Math.sqrt((middle - x) ** 2));
 
-                        let leftPower = x / video.width;
-                        let rightPower = (video.width - x) / video.width;
-                        publish("/NHSI/leftPower", leftPower.toFixed(2));
-                        publish("/NHSI/rightPower", rightPower.toFixed(2));
+                        // let leftPower = (x / video.width).toFixed(2);
+                        // let rightPower = ((video.width - x) / video.width).toFixed(2);
+                        let leftPower = (x / video.width);
+                        let rightPower = ((video.width - x) / video.width);
+                        lastLeftPowers.push(leftPower);
+                        lastRightPowers.push(rightPower);
+                        // publish("/NHSI/leftPower", leftPower.toFixed(2));
+                        // publish("/NHSI/rightPower", rightPower.toFixed(2));
 
                         // console.log(center);
                         cv.circle(dst2, center, keypoint.size, [255, 0, 0, 255], 3);
@@ -508,5 +462,100 @@
 
     }
 </style>
+<script>
+    // console.log(mqtt);
+
+    // const host = '10.22.5.8';
+    // const port = '8883';
+    const host = '0d64678487414d04aa9598dfec7afddd.s2.eu.hivemq.cloud';
+    const port = '8884';
+    const clientId = `webbClient#mqtt_${Math.random().toString(8).slice(3)}`;
+    // const clientId = "bigClientPaho";
+
+    const connectUrl = `mqtts://${host}:${port}`;
+    // console.log(connectUrl);
+
+    // Create a client instance
+    // client = new Paho.MQTT.Client(host, Number(port), clientId);
+    client = new Paho.MQTT.Client(host, Number(port), clientId);
+    // client = new Paho.MQTT.Client(host, Number(port),
+    //     client_id = "bigClientPaho",
+    //     clean_session = True,
+    //     userdata = None,
+    //     protocol = MQTTv311,
+    //     transport = "tcp");
+
+    // set callback handlers
+    client.onConnectionLost = onConnectionLost;
+    client.onMessageArrived = onMessageArrived;
+
+    // connect the client
+    client.connect({
+        onSuccess: onConnect,
+        useSSL: true,
+        userName: "nisse",
+        password: "ostKaka123",
+        keepAliveInterval: 60 * 10 // unsubscribe after 10 min...
+    });
+    // client.connect({ onSuccess: onConnect });
+
+    function publish (topic, m) {
+        // console.log(typeof (m));
+        m = String(m);
+
+        message = new Paho.MQTT.Message(m);
+        message.destinationName = topic;
+        client.send(message);
+    }
+
+    // called when the client connects
+    function onConnect () {
+        console.log("onConnect");
+
+        client.subscribe("/pos");
+        client.subscribe("/NHSI/leftPower");
+        client.subscribe("/NHSI/rightPower");
+        client.subscribe("/NHSI/speed");
+        console.log("subscribed to /pos");
+
+        publish("/pos", "0.22");
+        setInterval(() => {
+            // publish("/pos", "100");
+            if (lastLeftPowers.length > 0) {
+                let average = lastLeftPowers.reduce((partialSum, a) => partialSum + a, 0) / lastLeftPowers.length;
+                lastLeftPowers = [];
+                publish("/NHSI/leftPower", average.toFixed(2));
+            }
+            if (lastRightPowers.length > 0) {
+                let average = lastRightPowers.reduce((partialSum, a) => partialSum + a, 0) / lastRightPowers.length;
+                lastRightPowers = [];
+                publish("/NHSI/rightPower", average.toFixed(2));
+            }
+            // publish("");
+            if (lastSpeedValue !== speedValue) {
+                lastSpeedValue = speedValue;
+                console.log("published speed", speedValue);
+                // publish("/NHSI/speed", speedValue.toFixed(2));
+                // publish("/NHSI/speed", "400");
+                publish("/pos", "400");
+            }
+        }, 100);
+    }
+
+    // called when the client loses its connection
+    function onConnectionLost (responseObject) {
+        if (responseObject.errorCode !== 0) {
+            console.log("onConnectionLost:" + responseObject.errorMessage);
+        }
+    }
+
+    // called when a message arrives
+    function onMessageArrived (message) {
+        // console.log("onMessageArrived:" + message.payloadString);
+        // you can probably extract topic out of message
+        console.log(message.payloadString);
+    }
+
+</script>
 
 </html>
